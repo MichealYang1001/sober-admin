@@ -173,7 +173,7 @@ export default function ExpirationsPage() {
               <button className="icon-button" type="button" onClick={() => setPendingStudent(null)} disabled={removing} aria-label="关闭"><X size={18} /></button>
             </div>
             <p>确认后，将移除 <strong>{pendingStudent.email}</strong> 的俱乐部权限，并从用户角色中移除“俱乐部”。</p>
-            <p className="expiry-tg-notice">若该学员已绑定 Telegram，系统将自动从 TG VIP 群移除并禁止其通过旧邀请链接重新加入。</p>
+            <p className="expiry-tg-notice">若该学员已绑定 Telegram，系统将自动从 TG VIP 群移除，但不会封禁；之后可通过有效邀请链接重新加入。</p>
             <div className="form-actions">
               <button className="secondary-button" type="button" onClick={() => setPendingStudent(null)} disabled={removing}>取消</button>
               <button className="danger-button" type="button" onClick={removeClubPermission} disabled={removing}>{removing ? '正在移除...' : '确认移除俱乐部权限'}</button>
