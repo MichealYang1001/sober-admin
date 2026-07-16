@@ -75,14 +75,17 @@ export default function ExpirationsPage() {
     setRemoving(true)
     setError('')
     try {
-      await opsFetch(`/ops/students/${pendingStudent.id}`, {
+      const result = await opsFetch<{ telegram_removal?: { status: string; reason?: string } }>(`/ops/students/${pendingStudent.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           roles: [{ role_tag: 'club', granted: false, expires_at: null }],
           is_subscribed: false,
+          remove_from_telegram: true,
         }),
       })
-      setSuccess(`已移除 ${pendingStudent.email} 的俱乐部权限；请记得手动从 TG 群移除该学员。`)
+      setSuccess(result.telegram_removal?.status === 'skipped'
+        ? `已移除 ${pendingStudent.email} 的俱乐部权限；该学员没有已绑定的 Telegram 账号。`
+        : `已移除 ${pendingStudent.email} 的俱乐部权限，并已从 TG VIP 群移除。`)
       setPendingStudent(null)
       await loadStudents()
     } catch (removeError) {
@@ -170,7 +173,7 @@ export default function ExpirationsPage() {
               <button className="icon-button" type="button" onClick={() => setPendingStudent(null)} disabled={removing} aria-label="关闭"><X size={18} /></button>
             </div>
             <p>确认后，将移除 <strong>{pendingStudent.email}</strong> 的俱乐部权限，并从用户角色中移除“俱乐部”。</p>
-            <p className="expiry-tg-notice">TG 群权限不会自动移除，请到 Telegram 群内手动移除该学员。</p>
+            <p className="expiry-tg-notice">若该学员已绑定 Telegram，系统将自动从 TG VIP 群移除并禁止其通过旧邀请链接重新加入。</p>
             <div className="form-actions">
               <button className="secondary-button" type="button" onClick={() => setPendingStudent(null)} disabled={removing}>取消</button>
               <button className="danger-button" type="button" onClick={removeClubPermission} disabled={removing}>{removing ? '正在移除...' : '确认移除俱乐部权限'}</button>
