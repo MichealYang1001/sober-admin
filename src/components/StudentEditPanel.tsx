@@ -27,6 +27,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
     username: user.username || '',
     avatar: user.avatar || '',
     wechat_name: user.wechat_name || '',
+    wechat_id: user.wechat_id || '',
     is_subscribed: Boolean(user.is_subscribed),
     note: user.note || '',
     planet_name: user.planet_name || '',
@@ -56,6 +57,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
           username: form.username,
           avatar: form.avatar,
           wechat_name: form.wechat_name,
+          wechat_id: form.wechat_id,
           is_subscribed: form.is_subscribed,
           note: form.note,
           planet_name: form.planet_name,
@@ -94,6 +96,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
         <div className="field"><label>用户名</label><input className="input" value={form.username} onChange={(event) => update('username', event.target.value)} /></div>
         <div className="field"><label>头像地址</label><input className="input" value={form.avatar} onChange={(event) => update('avatar', event.target.value)} /></div>
         <div className="field"><label>微信名</label><input className="input" value={form.wechat_name} onChange={(event) => update('wechat_name', event.target.value)} /></div>
+        <div className="field"><label>微信 ID</label><input className="input" value={form.wechat_id} onChange={(event) => update('wechat_id', event.target.value)} /></div>
         <div className="field">
           <label>邮件订阅</label>
           <label className="binary-control"><input type="checkbox" checked={form.is_subscribed} onChange={(event) => setForm((current) => ({ ...current, is_subscribed: event.target.checked }))} /><span>订阅俱乐部邮件</span></label>

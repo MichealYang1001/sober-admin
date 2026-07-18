@@ -31,6 +31,7 @@ export function QuickStudentActionDialog({ mode, user, onClose, onDone }: QuickS
     current_email: user?.email || '',
     new_email: '',
     wechat_name: user?.wechat_name || '',
+    wechat_id: user?.wechat_id || '',
     tg_username: '',
     tg_display_name: user?.username || '',
     role_tag: 'club',
@@ -69,6 +70,7 @@ export function QuickStudentActionDialog({ mode, user, onClose, onDone }: QuickS
         current_email: form.current_email,
         new_email: mode === 'update_profile' && form.new_email ? form.new_email : null,
         wechat_name: mode !== 'update_role' ? form.wechat_name || null : null,
+        wechat_id: mode !== 'update_role' ? form.wechat_id || null : null,
         tg_username: mode === 'create_user' ? form.tg_username || null : null,
         tg_display_name: mode === 'create_user' ? form.tg_display_name || null : null,
         role_tag: mode === 'create_user' || mode === 'update_role' ? form.role_tag : null,
@@ -120,10 +122,16 @@ export function QuickStudentActionDialog({ mode, user, onClose, onDone }: QuickS
             )}
 
             {(mode === 'create_user' || mode === 'update_profile') && (
-              <div className="field">
-                <label>微信名</label>
-                <input className="input" value={form.wechat_name} onChange={(event) => update('wechat_name', event.target.value)} />
-              </div>
+              <>
+                <div className="field">
+                  <label>微信名</label>
+                  <input className="input" value={form.wechat_name} onChange={(event) => update('wechat_name', event.target.value)} />
+                </div>
+                <div className="field">
+                  <label>微信 ID</label>
+                  <input className="input" value={form.wechat_id} onChange={(event) => update('wechat_id', event.target.value)} />
+                </div>
+              </>
             )}
 
             {mode === 'create_user' && (

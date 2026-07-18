@@ -93,6 +93,7 @@ export default function StudentDetailPage() {
       <div className="panel detail-grid">
         <div className="detail-item"><span>邮箱</span><strong>{user.email}</strong></div>
         <div className="detail-item"><span>微信名</span><strong>{user.wechat_name || '-'}</strong></div>
+        <div className="detail-item"><span>微信 ID</span><strong>{user.wechat_id || '-'}</strong></div>
         <div className="detail-item"><span>用户名</span><strong>{user.username || '-'}</strong></div>
         <div className="detail-item"><span>头像地址</span><strong className="detail-long-value">{user.avatar || '-'}</strong></div>
         <div className="detail-item"><span>邮件订阅</span><strong>{user.is_subscribed ? '已订阅' : '未订阅'}</strong></div>

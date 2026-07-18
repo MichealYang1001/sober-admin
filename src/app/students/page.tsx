@@ -12,9 +12,10 @@ import { SelectControl } from '@/components/SelectControl'
 import type { PermissionTicket, RoleDefinition, StudentListItem } from '@/lib/types'
 
 const DEFAULT_PAGE_SIZE = 30
-const COLUMN_STORAGE_KEY = 'sober_admin_student_columns_v1'
+const COLUMN_STORAGE_KEY = 'sober_admin_student_columns_v2'
 const OPTIONAL_COLUMNS = [
   { key: 'wechat', label: '微信名' },
+  { key: 'wechat_id', label: '微信 ID' },
   { key: 'telegram', label: 'TG' },
   { key: 'planet', label: '星球名' },
   { key: 'planet_expiry', label: '星球到期' },
@@ -26,7 +27,7 @@ const OPTIONAL_COLUMNS = [
 type OptionalColumnKey = typeof OPTIONAL_COLUMNS[number]['key']
 const DEFAULT_COLUMNS = OPTIONAL_COLUMNS.map((column) => column.key)
 
-const EXPORT_HEADERS = ['邮箱', '用户名', '微信名', 'TG 昵称', 'TG 用户名', 'TG ID', '星球名', '星球到期', '备注', '当前角色', '角色到期时间', '更新时间']
+const EXPORT_HEADERS = ['邮箱', '用户名', '微信名', '微信 ID', 'TG 昵称', 'TG 用户名', 'TG ID', '星球名', '星球到期', '备注', '当前角色', '角色到期时间', '更新时间']
 
 function safeExportValue(value?: string | null) {
   const text = value || ''
@@ -123,6 +124,7 @@ export default function StudentsPage() {
         student.email,
         student.username,
         student.wechat_name,
+        student.wechat_id,
         student.note,
         student.planet_name,
         student.telegram_username,
@@ -156,6 +158,7 @@ export default function StudentsPage() {
           safeExportValue(student.email),
           safeExportValue(student.username),
           safeExportValue(student.wechat_name),
+          safeExportValue(student.wechat_id),
           safeExportValue(student.telegram_first_name),
           safeExportValue(student.telegram_username ? `@${student.telegram_username.replace(/^@/, '')}` : ''),
           safeExportValue(student.telegram_id == null ? '' : String(student.telegram_id)),
@@ -169,10 +172,10 @@ export default function StudentsPage() {
       })
       const sheet = XLSX.utils.aoa_to_sheet([EXPORT_HEADERS, ...rows])
       sheet['!cols'] = [
-        { wch: 32 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 16 },
+        { wch: 32 }, { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 18 }, { wch: 22 }, { wch: 16 },
         { wch: 20 }, { wch: 14 }, { wch: 30 }, { wch: 30 }, { wch: 44 }, { wch: 20 },
       ]
-      sheet['!autofilter'] = { ref: `A1:L${Math.max(rows.length + 1, 1)}` }
+      sheet['!autofilter'] = { ref: `A1:M${Math.max(rows.length + 1, 1)}` }
 
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, sheet, '学员数据')
@@ -208,7 +211,7 @@ export default function StudentsPage() {
       >
         <input
           className="input search-input search-input-wide"
-          placeholder="搜索邮箱、微信名、TG、星球名、备注或角色"
+          placeholder="搜索邮箱、微信名、微信 ID、TG、星球名、备注或角色"
           value={q}
           onChange={(event) => setQ(event.target.value)}
         />
@@ -273,6 +276,7 @@ export default function StudentsPage() {
             <tr>
               <th className="student-name-column">学员</th>
               {columnVisible('wechat') && <th>微信名</th>}
+              {columnVisible('wechat_id') && <th>微信 ID</th>}
               {columnVisible('telegram') && <th>TG</th>}
               {columnVisible('planet') && <th>星球名</th>}
               {columnVisible('planet_expiry') && <th>星球到期</th>}
@@ -293,6 +297,7 @@ export default function StudentsPage() {
                     {student.username && <div className="muted">{student.username}</div>}
                   </td>
                   {columnVisible('wechat') && <td>{student.wechat_name || '-'}</td>}
+                  {columnVisible('wechat_id') && <td>{student.wechat_id || '-'}</td>}
                   {columnVisible('telegram') && <td>
                     <strong>{student.telegram_first_name || '-'}</strong>
                     {student.telegram_username && <div className="muted">@{student.telegram_username.replace(/^@/, '')}</div>}

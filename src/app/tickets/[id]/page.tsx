@@ -104,6 +104,7 @@ export default function TicketDetailPage() {
         <div className="detail-item"><span>当前邮箱</span><strong>{ticket.current_email || '-'}</strong></div>
         <div className="detail-item"><span>新邮箱</span><strong>{ticket.new_email || '-'}</strong></div>
         <div className="detail-item"><span>微信名</span><strong>{ticket.wechat_name || '-'}</strong></div>
+        <div className="detail-item"><span>微信 ID</span><strong>{ticket.wechat_id || '-'}</strong></div>
         <div className="detail-item"><span>TG</span><strong>{ticket.tg_username || ticket.tg_display_name || '-'}</strong></div>
         <div className="detail-item"><span>用户角色</span><strong>{roleTagLabel(ticket.role_tag)}</strong></div>
         <div className="detail-item"><span>目标状态</span><strong>{ticket.role_granted == null ? '-' : ticket.role_granted ? '拥有该角色' : '移除该角色'}</strong></div>

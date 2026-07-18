@@ -16,6 +16,7 @@ export interface User {
   username?: string | null
   avatar?: string | null
   wechat_name?: string | null
+  wechat_id?: string | null
   note?: string | null
   planet_name?: string | null
   planet_expires_at?: string | null
@@ -53,6 +54,7 @@ export interface PermissionTicket {
   current_email?: string | null
   new_email?: string | null
   wechat_name?: string | null
+  wechat_id?: string | null
   tg_username?: string | null
   tg_display_name?: string | null
   role_tag?: string | null

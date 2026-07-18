@@ -20,6 +20,7 @@ export default function NewTicketPage() {
     current_email: '',
     new_email: '',
     wechat_name: '',
+    wechat_id: '',
     tg_username: '',
     tg_display_name: '',
     role_tag: 'club',
@@ -71,6 +72,7 @@ export default function NewTicketPage() {
         current_email: form.current_email,
         new_email: form.type === 'update_profile' && form.new_email ? form.new_email : null,
         wechat_name: form.wechat_name || null,
+        wechat_id: form.wechat_id || null,
         tg_username: form.tg_username || null,
         tg_display_name: form.tg_display_name || null,
         role_tag: form.type === 'create_user' || form.type === 'update_role' ? form.role_tag : null,
@@ -129,6 +131,10 @@ export default function NewTicketPage() {
               <div className="field">
                 <label>微信名</label>
                 <input className="input" value={form.wechat_name} onChange={(event) => update('wechat_name', event.target.value)} />
+              </div>
+              <div className="field">
+                <label>微信 ID</label>
+                <input className="input" value={form.wechat_id} onChange={(event) => update('wechat_id', event.target.value)} />
               </div>
             </>
           )}
