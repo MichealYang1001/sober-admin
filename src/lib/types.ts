@@ -130,3 +130,121 @@ export interface StudentAuditLog {
     executed_at?: string | null
   } | null
 }
+
+export type ProductType = 'community' | 'course' | 'membership' | 'service'
+export type ProductStatus = 'draft' | 'published' | 'archived'
+export type ProductLiveStatus = 'upcoming' | 'live' | 'paused' | 'ended' | 'not_applicable'
+
+export interface ProductCategory {
+  id: number
+  slug: string
+  name: string
+  description?: string | null
+  status: ProductStatus
+  sort_order: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface ProductCurriculumItem {
+  id?: number
+  lesson_number?: number | null
+  title: string
+  summary?: string | null
+  duration_minutes?: number | null
+  is_preview: boolean
+  status: string
+  sort_order: number
+}
+
+export interface ProductCurriculumSection {
+  id?: number
+  code: string
+  title: string
+  description?: string | null
+  sort_order: number
+  items: ProductCurriculumItem[]
+}
+
+export interface ProductEdition {
+  id?: number
+  code: string
+  name: string
+  live_status: ProductLiveStatus
+  enrollment_status: 'open' | 'waitlist' | 'closed' | 'not_applicable'
+  live_start_at?: string | null
+  live_end_at?: string | null
+  replay_available_at?: string | null
+  replay_expires_at?: string | null
+  status: string
+  sort_order: number
+}
+
+export interface ProductOffer {
+  id?: number
+  edition_id?: number | null
+  edition_code?: string | null
+  offer_code: string
+  offer_type: 'live' | 'replay' | 'subscription' | 'bundle' | 'consultation'
+  label: string
+  pricing_mode: 'fixed' | 'included' | 'contact'
+  price?: string | null
+  currency: string
+  billing_unit: string
+  display_text?: string | null
+  sale_status: 'active' | 'inactive' | 'sold_out'
+  is_primary: boolean
+  sort_order: number
+}
+
+export interface ProductPromotion {
+  id?: number
+  name: string
+  description?: string | null
+  policy_text?: string | null
+  promotion_type: string
+  value?: string | null
+  starts_at?: string | null
+  ends_at?: string | null
+  status: 'draft' | 'active' | 'ended' | 'archived'
+  sort_order: number
+  offer_codes: string[]
+}
+
+export interface ProductBundleItem {
+  id?: number
+  included_product_id?: number
+  included_product_slug: string
+  included_product_name?: string
+  note?: string | null
+  sort_order: number
+}
+
+export interface Product {
+  id: number
+  slug: string
+  name: string
+  product_type: ProductType
+  instructor_name?: string | null
+  short_description?: string | null
+  long_description?: string | null
+  cover_image_url?: string | null
+  landing_path?: string | null
+  cta_label: string
+  purchase_instructions?: string | null
+  benefits: string[]
+  entitlement_role_tag?: string | null
+  status: ProductStatus
+  is_featured: boolean
+  featured_rank: number
+  sort_order: number
+  category_ids: number[]
+  categories: Array<ProductCategory & { display_badge?: string | null; item_sort_order?: number }>
+  curriculum_sections: ProductCurriculumSection[]
+  editions: ProductEdition[]
+  offers: ProductOffer[]
+  promotions: ProductPromotion[]
+  bundle_items: ProductBundleItem[]
+  created_at?: string
+  updated_at?: string
+}
