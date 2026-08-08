@@ -17,6 +17,10 @@ function expiryTime(value?: string | null) {
   return new Date(normalized).getTime()
 }
 
+function hasCurrentRole(userRole: string, roleTag: string) {
+  return userRole.split('_').some((tag) => tag.trim() === roleTag)
+}
+
 export default function ExpirationsPage() {
   const router = useRouter()
   const [students, setStudents] = useState<StudentListItem[]>([])
@@ -55,9 +59,9 @@ export default function ExpirationsPage() {
     const deadline = now + effectiveDays * DAY_MS
 
     return students
+      .filter((student) => hasCurrentRole(student.user_role, 'club'))
       .flatMap((student) => student.role_permissions
         .filter((permission) => permission.role_tag === 'club'
-          && (permission.status === 'active' || permission.status === 'expired')
           && permission.expires_at)
         .map((permission) => ({ student, permission })))
       .filter(({ permission }) => {
