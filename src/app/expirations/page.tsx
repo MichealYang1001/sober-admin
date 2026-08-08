@@ -56,18 +56,28 @@ export default function ExpirationsPage() {
 
     return students
       .flatMap((student) => student.role_permissions
-        .filter((permission) => permission.role_tag === 'club' && permission.status === 'active' && permission.expires_at)
+        .filter((permission) => permission.role_tag === 'club'
+          && (permission.status === 'active' || permission.status === 'expired')
+          && permission.expires_at)
         .map((permission) => ({ student, permission })))
       .filter(({ permission }) => {
         const expiry = expiryTime(permission.expires_at)
-        return Number.isFinite(expiry) && expiry >= now && expiry <= deadline
+        return Number.isFinite(expiry) && expiry <= deadline
       })
       .sort((a, b) => expiryTime(a.permission.expires_at) - expiryTime(b.permission.expires_at))
   }, [days, students])
 
-  function remainingDays(permission: UserRolePermission) {
+  const expiredCount = expiringStudents.filter(({ permission }) => expiryTime(permission.expires_at) < Date.now()).length
+  const upcomingCount = expiringStudents.length - expiredCount
+
+  function expiryStatus(permission: UserRolePermission) {
     const expiry = expiryTime(permission.expires_at)
-    return Math.max(0, Math.ceil((expiry - Date.now()) / DAY_MS))
+    const difference = expiry - Date.now()
+    if (difference < 0) {
+      const elapsedDays = Math.ceil(Math.abs(difference) / DAY_MS)
+      return { label: `已过期 ${elapsedDays} 天`, badgeClass: 'red' }
+    }
+    return { label: `${Math.ceil(difference / DAY_MS)} 天`, badgeClass: 'yellow' }
   }
 
   async function removeClubPermission() {
@@ -100,7 +110,7 @@ export default function ExpirationsPage() {
       <div className="page-header">
         <div>
           <h1>到期管理</h1>
-          <p>未来 {Number(days) || DEFAULT_DAYS} 天内共有 {expiringStudents.length} 位俱乐部学员即将到期</p>
+          <p>共 {expiringStudents.length} 位待处理：{expiredCount} 位已过期，{upcomingCount} 位将在未来 {Number(days) || DEFAULT_DAYS} 天内到期</p>
         </div>
       </div>
 
@@ -139,25 +149,28 @@ export default function ExpirationsPage() {
               <th>TG</th>
               <th>角色</th>
               <th>到期时间</th>
-              <th>剩余天数</th>
+              <th>到期状态</th>
               <th>备注</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {expiringStudents.map(({ student, permission }) => (
-              <tr key={`${student.id}-${permission.id}`}>
-                <td><strong>{student.email}</strong>{student.username && <div className="muted">{student.username}</div>}</td>
-                <td>{student.wechat_name || '-'}</td>
-                <td>{student.telegram_username ? `@${student.telegram_username.replace(/^@/, '')}` : student.telegram_first_name || '-'}</td>
-                <td><span className={`badge ${roleTagBadgeClass('club')}`}>{roleTagLabel('club')}</span></td>
-                <td>{formatShortDate(permission.expires_at)}</td>
-                <td><span className="badge yellow">{remainingDays(permission)} 天</span></td>
-                <td className="student-note-cell">{student.note || '-'}</td>
-                <td><button className="secondary-button" type="button" onClick={() => setPendingStudent(student)}>处理到期</button></td>
-              </tr>
-            ))}
-            {!loading && expiringStudents.length === 0 && <tr><td colSpan={8} className="muted">未来 {Number(days) || DEFAULT_DAYS} 天内没有即将到期的俱乐部学员</td></tr>}
+            {expiringStudents.map(({ student, permission }) => {
+              const status = expiryStatus(permission)
+              return (
+                <tr key={`${student.id}-${permission.id}`}>
+                  <td><strong>{student.email}</strong>{student.username && <div className="muted">{student.username}</div>}</td>
+                  <td>{student.wechat_name || '-'}</td>
+                  <td>{student.telegram_username ? `@${student.telegram_username.replace(/^@/, '')}` : student.telegram_first_name || '-'}</td>
+                  <td><span className={`badge ${roleTagBadgeClass('club')}`}>{roleTagLabel('club')}</span></td>
+                  <td>{formatShortDate(permission.expires_at)}</td>
+                  <td><span className={`badge ${status.badgeClass}`}>{status.label}</span></td>
+                  <td className="student-note-cell">{student.note || '-'}</td>
+                  <td><button className="secondary-button" type="button" onClick={() => setPendingStudent(student)}>处理到期</button></td>
+                </tr>
+              )
+            })}
+            {!loading && expiringStudents.length === 0 && <tr><td colSpan={8} className="muted">没有已过期或未来 {Number(days) || DEFAULT_DAYS} 天内即将到期的俱乐部学员</td></tr>}
           </tbody>
         </table>
       </div>
