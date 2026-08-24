@@ -2548,3 +2548,74 @@ pre.snapshot {
   .product-bundle-row { grid-template-columns: 1fr 40px; }
   .product-bundle-row > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
 }
+
+.club-course-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(420px, 1.15fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.club-course-form,
+.club-course-list {
+  padding: 22px;
+}
+
+.club-course-form {
+  display: grid;
+  gap: 16px;
+}
+
+.club-course-form h3,
+.club-course-list h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.club-course-submit {
+  justify-content: center;
+  width: 100%;
+}
+
+.club-course-items {
+  display: grid;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.club-course-item {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.club-course-number {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--brand);
+  background: #eef5f1;
+  font-weight: 800;
+}
+
+.club-course-item p {
+  margin: 5px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.club-course-item small {
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .club-course-layout { grid-template-columns: 1fr; }
+}

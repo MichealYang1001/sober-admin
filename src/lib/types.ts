@@ -211,6 +211,9 @@ export interface ProductCurriculumItem {
   title: string
   summary?: string | null
   duration_minutes?: number | null
+  video_file_id?: string | null
+  pdf_url?: string | null
+  course_category?: string | null
   is_preview: boolean
   status: string
   sort_order: number
