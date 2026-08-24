@@ -29,6 +29,38 @@ body {
   line-height: 1.5;
 }
 
+.ai-metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+.ai-metric { display: flex; align-items: center; gap: 13px; min-height: 100px; padding: 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.ai-metric-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 7px; color: var(--brand); background: var(--brand-soft); }
+.ai-metric div { display: grid; gap: 2px; }
+.ai-metric span { color: var(--muted); font-size: 12px; }
+.ai-metric strong { color: var(--text); font-size: 25px; }
+.table-subtext { display: block; color: var(--muted); font-weight: 400; }
+.truncate-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lead-question { max-width: 440px; white-space: normal; }
+.compact-button { min-height: 32px; padding: 5px 10px; }
+.status-badge { display: inline-flex; border-radius: 999px; padding: 3px 8px; color: #52625d; background: #edf2f0; font-size: 11px; font-weight: 700; }
+.status-lead, .status-converted, .status-resolved { color: #176149; background: #e2f4ed; }
+.status-handoff, .status-new, .status-open { color: #9a5b0b; background: #fff2dd; }
+.ai-gap-list { display: grid; gap: 10px; }
+.ai-gap-card { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.ai-gap-card p { margin: 9px 0 4px; color: var(--text); }
+.ai-gap-card small { color: var(--muted); }
+.ai-drawer-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: flex-end; background: rgba(10, 22, 18, .36); }
+.ai-drawer { width: min(620px, 94vw); height: 100%; overflow: auto; background: var(--surface); box-shadow: -20px 0 60px rgba(7, 30, 22, .18); }
+.ai-drawer > header { position: sticky; top: 0; display: flex; align-items: flex-start; justify-content: space-between; padding: 22px 24px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,.96); }
+.ai-drawer h2 { margin: 3px 0 0; font-size: 21px; }
+.ai-drawer header span { color: var(--muted); font-size: 11px; font-weight: 700; }
+.ai-message-list { display: grid; gap: 13px; padding: 22px; }
+.ai-admin-message { max-width: 88%; padding: 13px 14px; border-radius: 9px; background: var(--surface-subtle); }
+.ai-admin-message.user { margin-left: auto; color: #fff; background: var(--brand); }
+.ai-admin-message p { margin: 5px 0 7px; white-space: pre-wrap; }
+.ai-admin-message small { opacity: .7; }
+.spin { animation: admin-spin 1s linear infinite; }
+@keyframes admin-spin { to { transform: rotate(360deg); } }
+@media (max-width: 980px) { .ai-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .ai-metric-grid { grid-template-columns: 1fr; } .ai-gap-card { align-items: flex-start; flex-direction: column; } }
+
 button, input, select, textarea {
   font: inherit;
 }

@@ -10,6 +10,65 @@ export interface OpsAccount {
   updated_at?: string
 }
 
+export interface AiCustomerOverview {
+  conversations_7d: number
+  leads_7d: number
+  open_gaps: number
+  total_conversations: number
+  total_leads: number
+  lead_rate: number
+}
+
+export interface AiConversation {
+  id: number
+  public_id: string
+  visitor_id: string
+  status: 'open' | 'lead' | 'handoff' | 'resolved' | 'closed'
+  model_id: string
+  source_page?: string | null
+  summary?: string | null
+  recommended_products: string[]
+  message_count: number
+  started_at: string
+  last_message_at: string
+}
+
+export interface AiMessage {
+  id: number
+  role: 'user' | 'assistant'
+  content: string
+  model_id?: string | null
+  safety_category?: string | null
+  created_at: string
+}
+
+export interface AiLead {
+  id: number
+  conversation_id?: number | null
+  name: string
+  contact_type: 'wechat' | 'phone'
+  contact_value: string
+  question?: string | null
+  intended_product?: string | null
+  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'closed'
+  assignee_account_id?: number | null
+  follow_up_note?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AiKnowledgeGap {
+  id: number
+  conversation_id?: number | null
+  message_id?: number | null
+  question: string
+  reason: string
+  status: 'open' | 'resolved' | 'dismissed'
+  resolution_note?: string | null
+  resolved_at?: string | null
+  created_at: string
+}
+
 export interface User {
   id: number
   email: string
