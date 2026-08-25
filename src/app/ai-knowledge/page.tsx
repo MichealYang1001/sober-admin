@@ -107,7 +107,7 @@ export default function AiKnowledgePage() {
     {loading ? <div className="empty-state">正在加载知识库...</div> : null}
     {!loading && !filtered.length ? <div className="empty-state"><BookOpenText size={24} />暂无匹配的知识条目。</div> : null}
     {!loading && filtered.length ? <div className="ai-knowledge-grid">{filtered.map((item) => <article className={`ai-knowledge-card ${item.is_active ? '' : 'inactive'}`} key={item.id}>
-      <div className="ai-knowledge-card-head"><div><span className="badge teal">{item.category}</span><span className={`badge ${item.is_active ? 'green' : 'gray'}`}>{item.is_active ? '已启用' : '已停用'}</span></div><small>排序 {item.sort_order}</small></div>
+      <div className="ai-knowledge-card-head"><div><span className="badge teal">{item.category}</span><span className={`badge ${item.is_active ? 'green' : 'gray'}`}>{item.is_active ? '已启用' : '已停用'}</span></div><small title="数字越小越靠前">顺序 {item.sort_order}</small></div>
       <h2>{item.title}</h2><p>{item.content}</p>
       {item.keywords.length ? <div className="ai-keywords">{item.keywords.map((keyword) => <span key={keyword}>{keyword}</span>)}</div> : null}
       {item.public_url ? <small className="ai-public-url">公开链接：{item.public_url}</small> : null}
@@ -117,7 +117,7 @@ export default function AiKnowledgePage() {
       <div className="modal-header"><div><h2>{editing ? '编辑知识' : '新增知识'}</h2><p>内容保存并启用后，会自动进入 AI 客服的回答资料。</p></div><button type="button" className="icon-button" onClick={() => setEditing(undefined)}><X size={17} /></button></div>
       <div className="form-grid">
         <label className="field"><span>分类</span><input className="input" required maxLength={80} value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })} /></label>
-        <label className="field"><span>排序</span><input className="input" type="number" value={draft.sort_order} onChange={(event) => setDraft({ ...draft, sort_order: Number(event.target.value) })} /></label>
+        <label className="field"><span>显示顺序</span><input className="input" type="number" value={draft.sort_order} onChange={(event) => setDraft({ ...draft, sort_order: Number(event.target.value) })} /><small className="muted">数字越小越靠前，只影响排列和提供给 AI 的先后顺序，不代表匹配权重。</small></label>
         <label className="field full"><span>标题 / 问题</span><input className="input" required maxLength={200} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="例如：期权入门实战课多少钱？" /></label>
         <label className="field full"><span>标准答案 / 已审核资料</span><textarea className="textarea ai-knowledge-content" required maxLength={12000} value={draft.content} onChange={(event) => setDraft({ ...draft, content: event.target.value })} placeholder="填写 AI 可以引用的准确内容" /></label>
         <label className="field full"><span>关键词</span><input className="input" value={draft.keywords} onChange={(event) => setDraft({ ...draft, keywords: event.target.value })} placeholder="用逗号分隔，例如：入门课，价格，零基础" /></label>
