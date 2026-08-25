@@ -69,6 +69,19 @@ export interface AiKnowledgeGap {
   created_at: string
 }
 
+export interface AiKnowledgeEntry {
+  id: number
+  category: string
+  title: string
+  content: string
+  public_url?: string | null
+  keywords: string[]
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 export interface User {
   id: number
   email: string

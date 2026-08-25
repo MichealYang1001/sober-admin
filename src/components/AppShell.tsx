@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Bot, CalendarClock, ClipboardList, GraduationCap, LogOut, PackageSearch, ScrollText, Settings, ShieldCheck, Users } from 'lucide-react'
+import { BookOpenText, Bot, CalendarClock, ClipboardList, GraduationCap, LogOut, PackageSearch, ScrollText, Settings, ShieldCheck, Users } from 'lucide-react'
 import { clearOpsAuth, getStoredAccount, opsFetch } from '@/lib/api'
 import type { OpsAccount } from '@/lib/types'
 
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/products', label: '产品管理', icon: PackageSearch, adminOnly: true },
   { href: '/club-courses', label: '俱乐部课程', icon: GraduationCap, adminOnly: true },
   { href: '/ai-customer-service', label: 'AI 客服', icon: Bot, adminOnly: true },
+  { href: '/ai-knowledge', label: 'AI 知识库', icon: BookOpenText, adminOnly: true },
   { href: '/expirations', label: '到期管理', icon: CalendarClock, adminOnly: true },
   { href: '/audits', label: '学员审计', icon: ScrollText, adminOnly: true },
   { href: '/accounts', label: '后台账号', icon: Settings, adminOnly: true },
