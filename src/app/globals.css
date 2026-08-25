@@ -39,6 +39,20 @@ body {
 .truncate-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lead-question { max-width: 440px; white-space: normal; }
 .compact-button { min-height: 32px; padding: 5px 10px; }
+.ai-lead-status-select { width: 128px; }
+.ai-lead-status-select .select-trigger { min-height: 34px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 750; }
+.ai-lead-status-select .select-value::before { width: 7px; height: 7px; display: inline-block; margin-right: 7px; border-radius: 50%; background: #87958f; content: ''; }
+.ai-lead-status-select.lead-status-new .select-trigger { border-color: #efd39b; color: #8b5b0d; background: #fff8e8; }
+.ai-lead-status-select.lead-status-new .select-value::before { background: #e8a82f; }
+.ai-lead-status-select.lead-status-contacted .select-trigger { border-color: #b9d7e8; color: #246487; background: #eef8fd; }
+.ai-lead-status-select.lead-status-contacted .select-value::before { background: #4ba2d1; }
+.ai-lead-status-select.lead-status-qualified .select-trigger { border-color: #d8c6e9; color: #67458b; background: #f8f2fc; }
+.ai-lead-status-select.lead-status-qualified .select-value::before { background: #9567bf; }
+.ai-lead-status-select.lead-status-converted .select-trigger { border-color: #b9dec9; color: #17613b; background: #edf8f1; }
+.ai-lead-status-select.lead-status-converted .select-value::before { background: #35a46b; }
+.ai-lead-status-select.lead-status-closed .select-trigger { border-color: #d8dfdc; color: #60706a; background: #f2f5f4; }
+.ai-lead-status-select .select-menu { width: 154px; left: auto; }
+.ai-lead-table-wrap { overflow: visible; }
 .status-badge { display: inline-flex; border-radius: 999px; padding: 3px 8px; color: #52625d; background: #edf2f0; font-size: 11px; font-weight: 700; }
 .status-lead, .status-converted, .status-resolved { color: #176149; background: #e2f4ed; }
 .status-handoff, .status-new, .status-open { color: #9a5b0b; background: #fff2dd; }
@@ -59,7 +73,7 @@ body {
 .spin { animation: admin-spin 1s linear infinite; }
 @keyframes admin-spin { to { transform: rotate(360deg); } }
 @media (max-width: 980px) { .ai-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 640px) { .ai-metric-grid { grid-template-columns: 1fr; } .ai-gap-card { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 640px) { .ai-metric-grid { grid-template-columns: 1fr; } .ai-gap-card { align-items: flex-start; flex-direction: column; } .ai-lead-table-wrap { overflow-x: auto; padding-bottom: 220px; } }
 
 button, input, select, textarea {
   font: inherit;
@@ -2586,8 +2600,9 @@ pre.snapshot {
 
 .club-course-item {
   display: grid;
-  grid-template-columns: 38px 1fr;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
   gap: 12px;
+  align-items: center;
   padding: 13px;
   border: 1px solid var(--border);
   border-radius: 7px;

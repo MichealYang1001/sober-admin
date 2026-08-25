@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Bot, CircleHelp, MessageSquareText, RefreshCw, Target, X } from 'lucide-react'
 import { opsFetch } from '@/lib/api'
+import { SelectControl } from '@/components/SelectControl'
 import type { AiConversation, AiCustomerOverview, AiKnowledgeGap, AiLead, AiMessage } from '@/lib/types'
 
 type Tab = 'conversations' | 'leads' | 'gaps'
@@ -10,6 +11,7 @@ type ConversationDetail = { conversation: AiConversation; messages: AiMessage[];
 
 const conversationStatus: Record<string, string> = { open: '对话中', lead: '已留资', handoff: '待人工', resolved: '已解决', closed: '已关闭' }
 const leadStatus: Record<string, string> = { new: '新线索', contacted: '已联系', qualified: '有意向', converted: '已转化', closed: '已关闭' }
+const leadStatusOptions = Object.entries(leadStatus).map(([value, label]) => ({ value, label }))
 
 export default function AiCustomerServiceAdminPage() {
   const [tab, setTab] = useState<Tab>('conversations')
@@ -105,7 +107,7 @@ function ConversationTable({ items, onOpen }: { items: AiConversation[]; onOpen:
 
 function LeadTable({ items, onStatus }: { items: AiLead[]; onStatus: (item: AiLead, status: AiLead['status']) => void }) {
   if (!items.length) return <div className="empty-state">还没有销售线索。</div>
-  return <div className="table-wrap"><table><thead><tr><th>客户</th><th>联系方式</th><th>咨询内容</th><th>状态</th><th>提交时间</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.name}</strong></td><td>{item.contact_type === 'wechat' ? '微信' : '手机'} · {item.contact_value}</td><td className="lead-question">{item.question || item.intended_product || '—'}</td><td><select value={item.status} onChange={(event) => void onStatus(item, event.target.value as AiLead['status'])}>{Object.entries(leadStatus).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td>{formatTime(item.created_at)}</td></tr>)}</tbody></table></div>
+  return <div className="table-wrap ai-lead-table-wrap"><table><thead><tr><th>客户</th><th>联系方式</th><th>咨询内容</th><th>状态</th><th>提交时间</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.name}</strong></td><td>{item.contact_type === 'wechat' ? '微信' : '手机'} · {item.contact_value}</td><td className="lead-question">{item.question || item.intended_product || '—'}</td><td><SelectControl value={item.status} options={leadStatusOptions} onValueChange={(value) => void onStatus(item, value as AiLead['status'])} ariaLabel={`更新 ${item.name} 的线索状态`} containerClassName={`ai-lead-status-select lead-status-${item.status}`} /></td><td>{formatTime(item.created_at)}</td></tr>)}</tbody></table></div>
 }
 
 function GapTable({ items, onStatus }: { items: AiKnowledgeGap[]; onStatus: (item: AiKnowledgeGap, status: AiKnowledgeGap['status']) => void }) {
