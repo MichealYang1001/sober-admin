@@ -82,6 +82,21 @@ export interface AiKnowledgeEntry {
   updated_at: string
 }
 
+export interface StudentQuestionAnswer {
+  question: string
+  answer: string
+  attachments?: StudentAttachment[]
+}
+
+export interface StudentAttachment {
+  object_key: string
+  file_name: string
+  content_type: string
+  size_bytes: number
+  url?: string | null
+  url_expires_in?: number | null
+}
+
 export interface User {
   id: number
   email: string
@@ -90,6 +105,8 @@ export interface User {
   wechat_name?: string | null
   wechat_id?: string | null
   note?: string | null
+  background_profile?: string | null
+  student_qa?: StudentQuestionAnswer[]
   planet_name?: string | null
   planet_expires_at?: string | null
   is_subscribed?: boolean

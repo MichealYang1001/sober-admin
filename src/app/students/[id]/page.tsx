@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, FilePlus2, Pencil, ShieldPlus, Zap } from 'lucide-react'
+import { ArrowLeft, FilePlus2, ImageIcon, Pencil, ShieldPlus, Zap } from 'lucide-react'
 import { getStoredAccount, opsFetch } from '@/lib/api'
 import { formatDate, formatRoleExpiry, roleTagBadgeClass, roleTagLabel } from '@/lib/labels'
 import { QuickStudentActionDialog } from '@/components/QuickStudentActionDialog'
@@ -127,6 +127,67 @@ export default function StudentDetailPage() {
       <div className="section">
         <h2>用户备注</h2>
         <div className="panel student-note-panel"><p className={user.note ? 'student-note-content' : 'muted'}>{user.note || '暂无备注'}</p></div>
+      </div>
+
+      <div className="section">
+        <h2>背景画像</h2>
+        <div className="panel student-note-panel">
+          <p className={user.background_profile ? 'student-note-content' : 'muted'}>{user.background_profile || '暂无背景画像'}</p>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="student-section-heading">
+          <h2>学员问答</h2>
+          <span className="muted">共 {user.student_qa?.length || 0} 组</span>
+        </div>
+        {user.student_qa?.length ? (
+          <div className="student-qa-list">
+            {user.student_qa.map((item, index) => (
+              <article className="panel student-qa-card" key={index}>
+                <div className="student-qa-card-index">问答 {index + 1}</div>
+                <div className="student-qa-content">
+                  <div>
+                    <span>Question</span>
+                    <p>{item.question}</p>
+                  </div>
+                  <div>
+                    <span>Answer</span>
+                    <p>{item.answer}</p>
+                  </div>
+                  {(item.attachments || []).length > 0 && (
+                    <div>
+                      <span>聊天截图</span>
+                      <div className="student-attachment-grid student-attachment-detail-grid">
+                        {(item.attachments || []).map((attachment) => (
+                          <a
+                            className="student-attachment-card student-attachment-link"
+                            href={attachment.url || undefined}
+                            target="_blank"
+                            rel="noreferrer"
+                            key={attachment.object_key}
+                          >
+                            {attachment.url && !['image/heic', 'image/heif'].includes(attachment.content_type) ? (
+                              <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={attachment.url} alt={attachment.file_name} />
+                              </>
+                            ) : (
+                              <div className="student-attachment-placeholder"><ImageIcon size={24} /></div>
+                            )}
+                            <div className="student-attachment-meta"><span>{attachment.file_name}</span></div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="panel student-qa-empty">暂无学员问答</div>
+        )}
       </div>
 
       <div className="section">
