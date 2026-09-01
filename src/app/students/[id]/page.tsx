@@ -53,7 +53,7 @@ export default function StudentDetailPage() {
   if (!student) return <div className="empty-state">加载中...</div>
 
   const { user, role_permissions: rolePermissions, telegram_binding: telegramBinding } = student
-  const studentChat = normalizeStudentChatMessages(user.student_qa)
+  const studentChat = normalizeStudentChatMessages(user.student_chat || user.student_qa)
   const encodedEmail = encodeURIComponent(user.email)
 
   return (
@@ -119,8 +119,12 @@ export default function StudentDetailPage() {
             onSaved={(updatedStudent) => {
               setStudent(updatedStudent)
               setEditing(false)
-              setSuccess('用户全部资料已更新')
+              setSuccess('学员基础资料已更新')
               router.replace(`/students/${user.id}`)
+            }}
+            onChatSaved={(updatedStudent) => {
+              setStudent(updatedStudent)
+              setSuccess('学员聊天记录已增量保存')
             }}
           />
         </div>

@@ -5,12 +5,16 @@ function isChatMessage(entry: StudentConversationEntry): entry is StudentChatMes
 }
 
 export function normalizeStudentChatMessages(entries?: StudentConversationEntry[] | null): StudentChatMessage[] {
-  return (entries || []).flatMap((entry) => {
+  return (entries || []).flatMap<StudentChatMessage>((entry) => {
     if (isChatMessage(entry)) {
       return [{
+        id: entry.id,
         sender: entry.sender,
         content: entry.content || '',
         attachments: entry.attachments || [],
+        sort_order: entry.sort_order,
+        created_at: entry.created_at,
+        updated_at: entry.updated_at,
       }]
     }
 

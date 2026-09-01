@@ -91,9 +91,13 @@ export interface StudentQuestionAnswer {
 export type StudentChatSender = 'student' | 'teacher'
 
 export interface StudentChatMessage {
+  id?: string
   sender: StudentChatSender
   content: string
   attachments?: StudentAttachment[]
+  sort_order?: number
+  created_at?: string | null
+  updated_at?: string | null
 }
 
 export type StudentConversationEntry = StudentChatMessage | StudentQuestionAnswer
@@ -117,6 +121,7 @@ export interface User {
   note?: string | null
   background_profile?: string | null
   student_qa?: StudentConversationEntry[]
+  student_chat?: StudentChatMessage[]
   planet_name?: string | null
   planet_expires_at?: string | null
   is_subscribed?: boolean

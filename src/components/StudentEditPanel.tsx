@@ -12,18 +12,41 @@ interface StudentEditPanelProps {
   roles: RoleDefinition[]
   onCancel: () => void
   onSaved: (student: StudentDetail) => void
+  onChatSaved: (student: StudentDetail) => void
 }
 
 function toLocalInput(value?: string | null) {
   return value ? value.slice(0, 16) : ''
 }
 
-export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentEditPanelProps) {
+function chatMessagePayload(item: StudentChatMessage) {
+  return {
+    sender: item.sender,
+    content: item.content.trim(),
+    attachments: (item.attachments || []).map((attachment) => ({
+      object_key: attachment.object_key,
+      file_name: attachment.file_name,
+      content_type: attachment.content_type,
+      size_bytes: attachment.size_bytes,
+    })),
+  }
+}
+
+function chatStateSignature(messages: StudentChatMessage[]) {
+  return JSON.stringify(messages.map((item) => ({
+    id: item.id || null,
+    ...chatMessagePayload(item),
+  })))
+}
+
+export function StudentEditPanel({ student, roles, onCancel, onSaved, onChatSaved }: StudentEditPanelProps) {
   const { user, telegram_binding: telegram, role_permissions: permissions } = student
   const currentRoles = new Set(user.user_role.split('_').filter((tag) => tag && tag !== 'regular'))
   const [saving, setSaving] = useState(false)
+  const [savingChat, setSavingChat] = useState(false)
   const [uploadingMessageIndex, setUploadingMessageIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
+  const [chatSuccess, setChatSuccess] = useState('')
   const [form, setForm] = useState({
     email: user.email,
     username: user.username || '',
@@ -40,38 +63,47 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
     telegram_first_name: telegram?.telegram_first_name || '',
   })
   const [studentChat, setStudentChat] = useState<StudentChatMessage[]>(() =>
-    normalizeStudentChatMessages(user.student_qa),
+    normalizeStudentChatMessages(user.student_chat || user.student_qa),
+  )
+  const [savedStudentChat, setSavedStudentChat] = useState<StudentChatMessage[]>(() =>
+    normalizeStudentChatMessages(user.student_chat || user.student_qa),
   )
   const [roleValues, setRoleValues] = useState(() => Object.fromEntries(roles.map((role) => {
     const permission = permissions.find((item) => item.role_tag === role.tag)
     return [role.tag, { granted: currentRoles.has(role.tag), expires_at: toLocalInput(permission?.expires_at) }]
   })))
+  const hasChatChanges = chatStateSignature(studentChat) !== chatStateSignature(savedStudentChat)
 
   function update(name: string, value: string) {
     setForm((current) => ({ ...current, [name]: value }))
   }
 
   function updateChatSender(index: number, sender: StudentChatSender) {
+    setChatSuccess('')
     setStudentChat((current) => current.map((item, itemIndex) => (
       itemIndex === index ? { ...item, sender } : item
     )))
   }
 
   function updateChatContent(index: number, content: string) {
+    setChatSuccess('')
     setStudentChat((current) => current.map((item, itemIndex) => (
       itemIndex === index ? { ...item, content } : item
     )))
   }
 
   function addChatMessage(sender: StudentChatSender) {
+    setChatSuccess('')
     setStudentChat((current) => [...current, { sender, content: '', attachments: [] }])
   }
 
   function removeChatMessage(index: number) {
+    setChatSuccess('')
     setStudentChat((current) => current.filter((_, itemIndex) => itemIndex !== index))
   }
 
   function moveChatMessage(index: number, direction: -1 | 1) {
+    setChatSuccess('')
     setStudentChat((current) => {
       const targetIndex = index + direction
       if (targetIndex < 0 || targetIndex >= current.length) return current
@@ -84,6 +116,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
   }
 
   function removeAttachment(messageIndex: number, objectKey: string) {
+    setChatSuccess('')
     setStudentChat((current) => current.map((item, itemIndex) => (
       itemIndex === messageIndex
         ? { ...item, attachments: (item.attachments || []).filter((attachment) => attachment.object_key !== objectKey) }
@@ -95,6 +128,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
     if (!files?.length) return
     setUploadingMessageIndex(messageIndex)
     setError('')
+    setChatSuccess('')
     try {
       for (const file of Array.from(files)) {
         const request = await opsFetch<{
@@ -129,14 +163,86 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
     }
   }
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault()
+  async function saveStudentChat() {
     setError('')
+    setChatSuccess('')
     const emptyMessageIndex = studentChat.findIndex((item) => !item.content.trim() && !(item.attachments || []).length)
     if (emptyMessageIndex >= 0) {
       setError(`第 ${emptyMessageIndex + 1} 条聊天消息没有文字或图片`)
       return
     }
+
+    setSavingChat(true)
+    try {
+      const savedById = new Map(
+        savedStudentChat.filter((item) => item.id).map((item) => [item.id as string, item]),
+      )
+      const currentIds = new Set(studentChat.flatMap((item) => item.id ? [item.id] : []))
+
+      for (const savedMessage of savedStudentChat) {
+        if (savedMessage.id && !currentIds.has(savedMessage.id)) {
+          await opsFetch(`/ops/students/${user.id}/chat-messages/${savedMessage.id}`, {
+            method: 'DELETE',
+          })
+        }
+      }
+
+      const persistedMessages: StudentChatMessage[] = []
+      for (const message of studentChat) {
+        if (!message.id) {
+          const created = await opsFetch<{ message: StudentChatMessage }>(
+            `/ops/students/${user.id}/chat-messages`,
+            { method: 'POST', body: JSON.stringify(chatMessagePayload(message)) },
+          )
+          persistedMessages.push(created.message)
+          continue
+        }
+
+        const savedMessage = savedById.get(message.id)
+        if (!savedMessage || chatStateSignature([savedMessage]) !== chatStateSignature([message])) {
+          const updated = await opsFetch<{ message: StudentChatMessage }>(
+            `/ops/students/${user.id}/chat-messages/${message.id}`,
+            { method: 'PATCH', body: JSON.stringify(chatMessagePayload(message)) },
+          )
+          persistedMessages.push(updated.message)
+        } else {
+          persistedMessages.push(message)
+        }
+      }
+
+      const orderedMessageIds = persistedMessages.flatMap((item) => item.id ? [item.id] : [])
+      const reordered = await opsFetch<{ student: StudentDetail }>(
+        `/ops/students/${user.id}/chat-messages/order`,
+        { method: 'PATCH', body: JSON.stringify({ message_ids: orderedMessageIds }) },
+      )
+      const refreshedChat = normalizeStudentChatMessages(
+        reordered.student.user.student_chat || reordered.student.user.student_qa,
+      )
+      setStudentChat(refreshedChat)
+      setSavedStudentChat(refreshedChat)
+      setChatSuccess('聊天记录已增量保存')
+      onChatSaved(reordered.student)
+    } catch (chatError) {
+      try {
+        const latest = await opsFetch<{ student: StudentDetail }>(`/ops/students/${user.id}`)
+        const latestChat = normalizeStudentChatMessages(
+          latest.student.user.student_chat || latest.student.user.student_qa,
+        )
+        setStudentChat(latestChat)
+        setSavedStudentChat(latestChat)
+        onChatSaved(latest.student)
+      } catch {
+        // Keep the local draft when the latest server state cannot be reloaded.
+      }
+      setError(`${chatError instanceof Error ? chatError.message : '聊天记录保存失败'}；已尝试重新加载最新记录`)
+    } finally {
+      setSavingChat(false)
+    }
+  }
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    setError('')
     setSaving(true)
     try {
       const data = await opsFetch<{ student: StudentDetail }>(`/ops/students/${user.id}`, {
@@ -150,16 +256,6 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
           is_subscribed: form.is_subscribed,
           note: form.note,
           background_profile: form.background_profile,
-          student_qa: studentChat.map((item) => ({
-            sender: item.sender,
-            content: item.content.trim(),
-            attachments: (item.attachments || []).map((attachment) => ({
-              object_key: attachment.object_key,
-              file_name: attachment.file_name,
-              content_type: attachment.content_type,
-              size_bytes: attachment.size_bytes,
-            })),
-          })),
           planet_name: form.planet_name,
           planet_expires_at: form.planet_expires_at ? new Date(form.planet_expires_at).toISOString() : null,
           telegram_id: form.telegram_id ? Number(form.telegram_id) : null,
@@ -230,7 +326,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
             <button
               className="secondary-button"
               type="button"
-              disabled={uploadingMessageIndex !== null}
+              disabled={uploadingMessageIndex !== null || savingChat}
               onClick={() => addChatMessage('student')}
             >
               <Plus size={16} />学员消息
@@ -238,13 +334,24 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
             <button
               className="secondary-button"
               type="button"
-              disabled={uploadingMessageIndex !== null}
+              disabled={uploadingMessageIndex !== null || savingChat}
               onClick={() => addChatMessage('teacher')}
             >
               <Plus size={16} />老师消息
             </button>
+            <button
+              className="button"
+              type="button"
+              disabled={!hasChatChanges || uploadingMessageIndex !== null || savingChat}
+              onClick={() => void saveStudentChat()}
+            >
+              {savingChat ? <LoaderCircle className="student-upload-spinner" size={16} /> : <Save size={16} />}
+              {savingChat ? '保存中...' : '保存聊天记录'}
+            </button>
           </div>
         </div>
+        {chatSuccess && <div className="student-chat-save-status">{chatSuccess}</div>}
+        {hasChatChanges && !chatSuccess && <div className="student-chat-unsaved-status">聊天记录有未保存的修改</div>}
         {studentChat.length > 0 ? (
           <div className="student-chat-editor-list">
             {studentChat.map((item, index) => (
@@ -254,6 +361,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
                     <button
                       className={item.sender === 'student' ? 'active' : ''}
                       type="button"
+                      disabled={savingChat}
                       onClick={() => updateChatSender(index, 'student')}
                     >
                       学员
@@ -261,6 +369,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
                     <button
                       className={item.sender === 'teacher' ? 'active' : ''}
                       type="button"
+                      disabled={savingChat}
                       onClick={() => updateChatSender(index, 'teacher')}
                     >
                       老师
@@ -270,7 +379,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
                     <button
                       className="icon-button"
                       type="button"
-                      disabled={index === 0 || uploadingMessageIndex !== null}
+                      disabled={index === 0 || uploadingMessageIndex !== null || savingChat}
                       onClick={() => moveChatMessage(index, -1)}
                       aria-label={`上移第 ${index + 1} 条消息`}
                       title="上移"
@@ -280,7 +389,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
                     <button
                       className="icon-button"
                       type="button"
-                      disabled={index === studentChat.length - 1 || uploadingMessageIndex !== null}
+                      disabled={index === studentChat.length - 1 || uploadingMessageIndex !== null || savingChat}
                       onClick={() => moveChatMessage(index, 1)}
                       aria-label={`下移第 ${index + 1} 条消息`}
                       title="下移"
@@ -290,7 +399,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
                     <button
                       className="icon-button student-chat-remove"
                       type="button"
-                      disabled={uploadingMessageIndex !== null}
+                      disabled={uploadingMessageIndex !== null || savingChat}
                       onClick={() => removeChatMessage(index)}
                       aria-label={`删除第 ${index + 1} 条消息`}
                       title="删除这条消息"
@@ -308,6 +417,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
                     className="textarea"
                     rows={3}
                     value={item.content}
+                    disabled={savingChat}
                     onChange={(event) => updateChatContent(index, event.target.value)}
                     placeholder={item.sender === 'student' ? '记录学员发来的原话' : '记录老师回复的原话'}
                   />
@@ -318,7 +428,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
                       <strong>消息图片</strong>
                       <span>可只传图片；支持 JPEG、PNG、WebP、GIF、HEIC，单张不超过 15 MB</span>
                     </div>
-                    <label className={`secondary-button student-image-upload ${uploadingMessageIndex === index ? 'disabled' : ''}`}>
+                    <label className={`secondary-button student-image-upload ${uploadingMessageIndex === index || savingChat ? 'disabled' : ''}`}>
                       {uploadingMessageIndex === index
                         ? <LoaderCircle className="student-upload-spinner" size={16} />
                         : <ImagePlus size={16} />}
@@ -327,7 +437,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
                         type="file"
                         accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
                         multiple
-                        disabled={uploadingMessageIndex !== null}
+                        disabled={uploadingMessageIndex !== null || savingChat}
                         onChange={(event) => {
                           void uploadAttachments(index, event.target.files)
                           event.currentTarget.value = ''
@@ -351,6 +461,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
                             <span title={attachment.file_name}>{attachment.file_name}</span>
                             <button
                               type="button"
+                              disabled={savingChat}
                               onClick={() => removeAttachment(index, attachment.object_key)}
                               aria-label={`移除 ${attachment.file_name}`}
                             >
@@ -400,8 +511,14 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
       </div>
 
       <div className="form-actions">
-        <button className="secondary-button" type="button" onClick={onCancel} disabled={saving || uploadingMessageIndex !== null}><X size={17} />取消</button>
-        <button className="button" disabled={saving || uploadingMessageIndex !== null}><Save size={17} />{saving ? '保存中...' : '保存全部修改'}</button>
+        <button className="secondary-button" type="button" onClick={onCancel} disabled={saving || savingChat || uploadingMessageIndex !== null}><X size={17} />取消</button>
+        <button
+          className="button"
+          disabled={saving || savingChat || uploadingMessageIndex !== null || hasChatChanges}
+          title={hasChatChanges ? '请先保存或撤销聊天记录修改' : undefined}
+        >
+          <Save size={17} />{saving ? '保存中...' : '保存基础资料'}
+        </button>
       </div>
     </form>
   )

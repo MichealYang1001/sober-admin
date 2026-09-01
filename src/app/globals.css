@@ -1955,6 +1955,30 @@ pre.snapshot {
   gap: 8px;
 }
 
+.student-chat-add-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.student-chat-save-status,
+.student-chat-unsaved-status {
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.student-chat-save-status {
+  color: #1f6d51;
+  background: #e5f5ec;
+}
+
+.student-chat-unsaved-status {
+  color: #8a5a16;
+  background: #fff5dd;
+}
+
 .student-chat-editor-list {
   display: grid;
   gap: 12px;
@@ -2016,6 +2040,12 @@ pre.snapshot {
 .student-chat-sender-toggle button.active {
   color: #fff;
   background: var(--brand);
+}
+
+.student-chat-sender-toggle button:disabled,
+.student-attachment-meta button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .student-chat-message-actions .icon-button:disabled {
