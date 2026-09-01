@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { ImagePlus, LoaderCircle, Plus, Save, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ImagePlus, LoaderCircle, Plus, Save, Trash2, X } from 'lucide-react'
 import { opsFetch } from '@/lib/api'
 import { roleTagLabel } from '@/lib/labels'
-import type { RoleDefinition, StudentAttachment, StudentDetail, StudentQuestionAnswer } from '@/lib/types'
+import { normalizeStudentChatMessages } from '@/lib/student-chat'
+import type { RoleDefinition, StudentAttachment, StudentChatMessage, StudentChatSender, StudentDetail } from '@/lib/types'
 
 interface StudentEditPanelProps {
   student: StudentDetail
@@ -21,7 +22,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
   const { user, telegram_binding: telegram, role_permissions: permissions } = student
   const currentRoles = new Set(user.user_role.split('_').filter((tag) => tag && tag !== 'regular'))
   const [saving, setSaving] = useState(false)
-  const [uploadingQaIndex, setUploadingQaIndex] = useState<number | null>(null)
+  const [uploadingMessageIndex, setUploadingMessageIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     email: user.email,
@@ -38,12 +39,8 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
     telegram_username: telegram?.telegram_username || '',
     telegram_first_name: telegram?.telegram_first_name || '',
   })
-  const [studentQa, setStudentQa] = useState<StudentQuestionAnswer[]>(() =>
-    (user.student_qa || []).map((item) => ({
-      question: item.question,
-      answer: item.answer,
-      attachments: item.attachments || [],
-    })),
+  const [studentChat, setStudentChat] = useState<StudentChatMessage[]>(() =>
+    normalizeStudentChatMessages(user.student_qa),
   )
   const [roleValues, setRoleValues] = useState(() => Object.fromEntries(roles.map((role) => {
     const permission = permissions.find((item) => item.role_tag === role.tag)
@@ -54,27 +51,49 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
     setForm((current) => ({ ...current, [name]: value }))
   }
 
-  function updateStudentQa(index: number, field: 'question' | 'answer', value: string) {
-    setStudentQa((current) => current.map((item, itemIndex) => (
-      itemIndex === index ? { ...item, [field]: value } : item
+  function updateChatSender(index: number, sender: StudentChatSender) {
+    setStudentChat((current) => current.map((item, itemIndex) => (
+      itemIndex === index ? { ...item, sender } : item
     )))
   }
 
-  function removeStudentQa(index: number) {
-    setStudentQa((current) => current.filter((_, itemIndex) => itemIndex !== index))
+  function updateChatContent(index: number, content: string) {
+    setStudentChat((current) => current.map((item, itemIndex) => (
+      itemIndex === index ? { ...item, content } : item
+    )))
   }
 
-  function removeAttachment(qaIndex: number, objectKey: string) {
-    setStudentQa((current) => current.map((item, itemIndex) => (
-      itemIndex === qaIndex
+  function addChatMessage(sender: StudentChatSender) {
+    setStudentChat((current) => [...current, { sender, content: '', attachments: [] }])
+  }
+
+  function removeChatMessage(index: number) {
+    setStudentChat((current) => current.filter((_, itemIndex) => itemIndex !== index))
+  }
+
+  function moveChatMessage(index: number, direction: -1 | 1) {
+    setStudentChat((current) => {
+      const targetIndex = index + direction
+      if (targetIndex < 0 || targetIndex >= current.length) return current
+      const reordered = [...current]
+      const movedMessage = reordered[index]
+      reordered[index] = reordered[targetIndex]
+      reordered[targetIndex] = movedMessage
+      return reordered
+    })
+  }
+
+  function removeAttachment(messageIndex: number, objectKey: string) {
+    setStudentChat((current) => current.map((item, itemIndex) => (
+      itemIndex === messageIndex
         ? { ...item, attachments: (item.attachments || []).filter((attachment) => attachment.object_key !== objectKey) }
         : item
     )))
   }
 
-  async function uploadAttachments(qaIndex: number, files: FileList | null) {
+  async function uploadAttachments(messageIndex: number, files: FileList | null) {
     if (!files?.length) return
-    setUploadingQaIndex(qaIndex)
+    setUploadingMessageIndex(messageIndex)
     setError('')
     try {
       for (const file of Array.from(files)) {
@@ -97,8 +116,8 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
         if (!uploadResponse.ok) {
           throw new Error(`图片上传失败（${uploadResponse.status}）`)
         }
-        setStudentQa((current) => current.map((item, itemIndex) => (
-          itemIndex === qaIndex
+        setStudentChat((current) => current.map((item, itemIndex) => (
+          itemIndex === messageIndex
             ? { ...item, attachments: [...(item.attachments || []), request.attachment] }
             : item
         )))
@@ -106,14 +125,19 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : '图片上传失败')
     } finally {
-      setUploadingQaIndex(null)
+      setUploadingMessageIndex(null)
     }
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    setSaving(true)
     setError('')
+    const emptyMessageIndex = studentChat.findIndex((item) => !item.content.trim() && !(item.attachments || []).length)
+    if (emptyMessageIndex >= 0) {
+      setError(`第 ${emptyMessageIndex + 1} 条聊天消息没有文字或图片`)
+      return
+    }
+    setSaving(true)
     try {
       const data = await opsFetch<{ student: StudentDetail }>(`/ops/students/${user.id}`, {
         method: 'PATCH',
@@ -126,9 +150,9 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
           is_subscribed: form.is_subscribed,
           note: form.note,
           background_profile: form.background_profile,
-          student_qa: studentQa.map((item) => ({
-            question: item.question.trim(),
-            answer: item.answer.trim(),
+          student_qa: studentChat.map((item) => ({
+            sender: item.sender,
+            content: item.content.trim(),
             attachments: (item.attachments || []).map((attachment) => ({
               object_key: attachment.object_key,
               file_name: attachment.file_name,
@@ -196,78 +220,114 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
         </div>
       </div>
 
-      <div className="student-qa-editor">
-        <div className="student-qa-heading">
+      <div className="student-chat-editor">
+        <div className="student-chat-heading">
           <div>
-            <h3>学员问答</h3>
-            <p className="muted">记录微信群或私聊访谈；一次可添加多组问题与回答。</p>
+            <h3>学员聊天记录</h3>
+            <p className="muted">按微信聊天顺序记录；左侧是学员，右侧是老师，每条消息都可以附图片。</p>
           </div>
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={uploadingQaIndex !== null}
-            onClick={() => setStudentQa((current) => [...current, { question: '', answer: '', attachments: [] }])}
-          >
-            <Plus size={16} />添加问答
-          </button>
+          <div className="student-chat-add-actions">
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={uploadingMessageIndex !== null}
+              onClick={() => addChatMessage('student')}
+            >
+              <Plus size={16} />学员消息
+            </button>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={uploadingMessageIndex !== null}
+              onClick={() => addChatMessage('teacher')}
+            >
+              <Plus size={16} />老师消息
+            </button>
+          </div>
         </div>
-        {studentQa.length > 0 ? (
-          <div className="student-qa-editor-list">
-            {studentQa.map((item, index) => (
-              <div className="student-qa-editor-row" key={index}>
-                <div className="student-qa-row-heading">
-                  <strong>问答 {index + 1}</strong>
-                  <button
-                    className="icon-button student-qa-remove"
-                    type="button"
-                    disabled={uploadingQaIndex !== null}
-                    onClick={() => removeStudentQa(index)}
-                    aria-label={`删除问答 ${index + 1}`}
-                    title="删除这组问答"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+        {studentChat.length > 0 ? (
+          <div className="student-chat-editor-list">
+            {studentChat.map((item, index) => (
+              <div className={`student-chat-editor-row ${item.sender}`} key={index}>
+                <div className="student-chat-row-heading">
+                  <div className="student-chat-sender-toggle" aria-label={`第 ${index + 1} 条消息发送方`}>
+                    <button
+                      className={item.sender === 'student' ? 'active' : ''}
+                      type="button"
+                      onClick={() => updateChatSender(index, 'student')}
+                    >
+                      学员
+                    </button>
+                    <button
+                      className={item.sender === 'teacher' ? 'active' : ''}
+                      type="button"
+                      onClick={() => updateChatSender(index, 'teacher')}
+                    >
+                      老师
+                    </button>
+                  </div>
+                  <div className="student-chat-message-actions">
+                    <button
+                      className="icon-button"
+                      type="button"
+                      disabled={index === 0 || uploadingMessageIndex !== null}
+                      onClick={() => moveChatMessage(index, -1)}
+                      aria-label={`上移第 ${index + 1} 条消息`}
+                      title="上移"
+                    >
+                      <ArrowUp size={15} />
+                    </button>
+                    <button
+                      className="icon-button"
+                      type="button"
+                      disabled={index === studentChat.length - 1 || uploadingMessageIndex !== null}
+                      onClick={() => moveChatMessage(index, 1)}
+                      aria-label={`下移第 ${index + 1} 条消息`}
+                      title="下移"
+                    >
+                      <ArrowDown size={15} />
+                    </button>
+                    <button
+                      className="icon-button student-chat-remove"
+                      type="button"
+                      disabled={uploadingMessageIndex !== null}
+                      onClick={() => removeChatMessage(index)}
+                      aria-label={`删除第 ${index + 1} 条消息`}
+                      title="删除这条消息"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
                 <div className="field">
-                  <label htmlFor={`student-question-${index}`}>Question</label>
+                  <label htmlFor={`student-chat-message-${index}`}>
+                    {item.sender === 'student' ? '学员消息' : '老师消息'}
+                  </label>
                   <textarea
-                    id={`student-question-${index}`}
+                    id={`student-chat-message-${index}`}
                     className="textarea"
-                    rows={2}
-                    value={item.question}
-                    onChange={(event) => updateStudentQa(index, 'question', event.target.value)}
-                    placeholder="向学员提出的问题"
-                    required
+                    rows={3}
+                    value={item.content}
+                    onChange={(event) => updateChatContent(index, event.target.value)}
+                    placeholder={item.sender === 'student' ? '记录学员发来的原话' : '记录老师回复的原话'}
                   />
                 </div>
-                <div className="field">
-                  <label htmlFor={`student-answer-${index}`}>Answer</label>
-                  <textarea
-                    id={`student-answer-${index}`}
-                    className="textarea"
-                    rows={4}
-                    value={item.answer}
-                    onChange={(event) => updateStudentQa(index, 'answer', event.target.value)}
-                    placeholder="学员的原始回答或整理后的回答"
-                    required
-                  />
-                </div>
-                <div className="student-qa-attachments">
-                  <div className="student-qa-attachment-heading">
+                <div className="student-chat-attachments">
+                  <div className="student-chat-attachment-heading">
                     <div>
-                      <strong>聊天截图</strong>
-                      <span>支持 JPEG、PNG、WebP、GIF、HEIC，单张不超过 15 MB</span>
+                      <strong>消息图片</strong>
+                      <span>可只传图片；支持 JPEG、PNG、WebP、GIF、HEIC，单张不超过 15 MB</span>
                     </div>
-                    <label className={`secondary-button student-image-upload ${uploadingQaIndex === index ? 'disabled' : ''}`}>
-                      {uploadingQaIndex === index
+                    <label className={`secondary-button student-image-upload ${uploadingMessageIndex === index ? 'disabled' : ''}`}>
+                      {uploadingMessageIndex === index
                         ? <LoaderCircle className="student-upload-spinner" size={16} />
                         : <ImagePlus size={16} />}
-                      {uploadingQaIndex === index ? '上传中...' : '添加图片'}
+                      {uploadingMessageIndex === index ? '上传中...' : '添加图片'}
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
                         multiple
-                        disabled={uploadingQaIndex !== null}
+                        disabled={uploadingMessageIndex !== null}
                         onChange={(event) => {
                           void uploadAttachments(index, event.target.files)
                           event.currentTarget.value = ''
@@ -306,7 +366,7 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
             ))}
           </div>
         ) : (
-          <div className="student-qa-empty">暂无学员问答，点击“添加问答”开始记录。</div>
+          <div className="student-chat-empty">暂无聊天记录，可从“学员消息”或“老师消息”开始添加。</div>
         )}
       </div>
 
@@ -340,8 +400,8 @@ export function StudentEditPanel({ student, roles, onCancel, onSaved }: StudentE
       </div>
 
       <div className="form-actions">
-        <button className="secondary-button" type="button" onClick={onCancel} disabled={saving || uploadingQaIndex !== null}><X size={17} />取消</button>
-        <button className="button" disabled={saving || uploadingQaIndex !== null}><Save size={17} />{saving ? '保存中...' : '保存全部修改'}</button>
+        <button className="secondary-button" type="button" onClick={onCancel} disabled={saving || uploadingMessageIndex !== null}><X size={17} />取消</button>
+        <button className="button" disabled={saving || uploadingMessageIndex !== null}><Save size={17} />{saving ? '保存中...' : '保存全部修改'}</button>
       </div>
     </form>
   )

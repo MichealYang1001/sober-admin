@@ -88,6 +88,16 @@ export interface StudentQuestionAnswer {
   attachments?: StudentAttachment[]
 }
 
+export type StudentChatSender = 'student' | 'teacher'
+
+export interface StudentChatMessage {
+  sender: StudentChatSender
+  content: string
+  attachments?: StudentAttachment[]
+}
+
+export type StudentConversationEntry = StudentChatMessage | StudentQuestionAnswer
+
 export interface StudentAttachment {
   object_key: string
   file_name: string
@@ -106,7 +116,7 @@ export interface User {
   wechat_id?: string | null
   note?: string | null
   background_profile?: string | null
-  student_qa?: StudentQuestionAnswer[]
+  student_qa?: StudentConversationEntry[]
   planet_name?: string | null
   planet_expires_at?: string | null
   is_subscribed?: boolean

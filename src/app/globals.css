@@ -1924,8 +1924,8 @@ pre.snapshot {
 }
 
 .student-section-heading,
-.student-qa-heading,
-.student-qa-row-heading {
+.student-chat-heading,
+.student-chat-row-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1937,42 +1937,55 @@ pre.snapshot {
 }
 
 .student-section-heading h2,
-.student-qa-heading h3,
-.student-qa-heading p {
+.student-chat-heading h3,
+.student-chat-heading p {
   margin: 0;
 }
 
-.student-qa-editor {
+.student-chat-editor {
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid var(--border);
 }
 
-.student-qa-editor-list,
-.student-qa-list {
-  display: grid;
-  gap: 14px;
-  margin-top: 14px;
+.student-chat-add-actions,
+.student-chat-message-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.student-qa-editor-row,
-.student-qa-card {
+.student-chat-editor-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
   padding: 18px;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: #f8fbfa;
+  border-radius: 8px;
+  background: #eef3f1;
 }
 
-.student-qa-editor-row {
+.student-chat-editor-row {
+  width: min(86%, 900px);
   display: grid;
   gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
 }
 
-.student-qa-remove {
+.student-chat-editor-row.teacher {
+  justify-self: end;
+  border-color: #b7d8c9;
+  background: #e8f7ef;
+}
+
+.student-chat-remove {
   color: #a33a30;
 }
 
-.student-qa-empty {
+.student-chat-empty {
   margin-top: 14px;
   padding: 18px;
   border: 1px dashed var(--border-strong);
@@ -1981,60 +1994,110 @@ pre.snapshot {
   background: #f8fbfa;
 }
 
-.student-qa-card-index {
-  margin-bottom: 14px;
-  color: #247a5c;
-  font-size: 12px;
-  font-weight: 800;
+.student-chat-sender-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.78);
 }
 
-.student-qa-content {
-  display: grid;
-  gap: 16px;
-}
-
-.student-qa-content span {
-  display: block;
-  margin-bottom: 5px;
+.student-chat-sender-toggle button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 4px;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
 }
 
-.student-qa-content p {
-  margin: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+.student-chat-sender-toggle button.active {
+  color: #fff;
+  background: var(--brand);
 }
 
-.student-qa-attachments {
+.student-chat-message-actions .icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.student-chat-attachments {
   display: grid;
   gap: 12px;
   padding-top: 4px;
 }
 
-.student-qa-attachment-heading {
+.student-chat-attachment-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
 }
 
-.student-qa-attachment-heading > div {
+.student-chat-attachment-heading > div {
   display: grid;
   gap: 3px;
 }
 
-.student-qa-attachment-heading > div > strong {
+.student-chat-attachment-heading > div > strong {
   color: #294138;
   font-size: 12px;
 }
 
-.student-qa-attachment-heading > div > span {
+.student-chat-attachment-heading > div > span {
   color: var(--muted);
   font-size: 11px;
+}
+
+.student-chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: #eef3f1;
+}
+
+.student-chat-bubble {
+  max-width: 78%;
+  align-self: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px 12px 12px 12px;
+  background: #fff;
+}
+
+.student-chat-bubble.teacher {
+  align-self: flex-end;
+  border-color: #b7d8c9;
+  border-radius: 12px 4px 12px 12px;
+  background: #dff4e8;
+}
+
+.student-chat-author {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.student-chat-bubble.teacher .student-chat-author {
+  color: #247a5c;
+  text-align: right;
+}
+
+.student-chat-bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+
+.student-chat-image-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  margin-top: 10px;
 }
 
 .student-image-upload {
@@ -2244,6 +2307,32 @@ pre.snapshot {
 }
 
 @media (max-width: 900px) {
+  .student-chat-heading,
+  .student-chat-attachment-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .student-chat-add-actions {
+    align-self: stretch;
+  }
+
+  .student-chat-add-actions .secondary-button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .student-chat-editor-list,
+  .student-chat-thread {
+    padding: 12px;
+  }
+
+  .student-chat-editor-row,
+  .student-chat-bubble {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .role-editor-grid {
     grid-template-columns: 1fr;
   }
