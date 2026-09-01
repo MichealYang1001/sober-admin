@@ -44,6 +44,8 @@ export default function StudentsPage() {
   const [q, setQ] = useState('')
   const [appliedQ, setAppliedQ] = useState('')
   const [role, setRole] = useState('club')
+  const [backgroundProfile, setBackgroundProfile] = useState('')
+  const [studentChat, setStudentChat] = useState('')
   const [roles, setRoles] = useState<RoleDefinition[]>([])
   const [allStudents, setAllStudents] = useState<StudentListItem[]>([])
   const [page, setPage] = useState(1)
@@ -118,6 +120,12 @@ export default function StudentsPage() {
       const matchesRole = !role
         || (role === 'regular' ? activeRoles.length === 0 : activeRoles.includes(role))
       if (!matchesRole) return false
+      const matchesBackgroundProfile = !backgroundProfile
+        || student.has_background_profile === (backgroundProfile === 'yes')
+      if (!matchesBackgroundProfile) return false
+      const matchesStudentChat = !studentChat
+        || student.has_student_chat === (studentChat === 'yes')
+      if (!matchesStudentChat) return false
       if (!needle) return true
 
       const searchableValues = [
@@ -135,7 +143,7 @@ export default function StudentsPage() {
       ]
       return searchableValues.some((value) => value != null && String(value).toLowerCase().includes(needle))
     })
-  }, [allStudents, appliedQ, role, roles])
+  }, [allStudents, appliedQ, backgroundProfile, role, roles, studentChat])
 
   const total = filteredStudents.length
   const effectivePageSize = pageSize === 'all' ? Math.max(total, 1) : Number(pageSize)
@@ -249,26 +257,58 @@ export default function StudentsPage() {
       {success && <div className="success-state">{success}</div>}
       {error && <div className="error-state">{error}</div>}
       <div className="student-list">
-        <div className="tabs student-role-tabs" role="tablist" aria-label="角色筛选">
-          {[
-            { value: '', label: '全部角色' },
-            { value: 'regular', label: '普通用户' },
-            ...roles.map((item) => ({ value: item.tag, label: item.name })),
-          ].map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={role === item.value}
-              className={role === item.value ? 'tab active' : 'tab'}
-              onClick={() => {
-                setRole(item.value)
+        <div className="student-list-filters" aria-label="学员筛选">
+          <div className="student-list-filter">
+            <span>角色</span>
+            <SelectControl
+              containerClassName="student-filter-select student-role-select"
+              ariaLabel="按角色筛选"
+              value={role}
+              options={[
+                { value: '', label: '全部角色' },
+                { value: 'regular', label: '普通用户' },
+                ...roles.map((item) => ({ value: item.tag, label: item.name })),
+              ]}
+              onValueChange={(value) => {
+                setRole(value)
                 setPage(1)
               }}
-            >
-              {item.label}
-            </button>
-          ))}
+            />
+          </div>
+          <div className="student-list-filter">
+            <span>背景画像</span>
+            <SelectControl
+              containerClassName="student-filter-select"
+              ariaLabel="按背景画像筛选"
+              value={backgroundProfile}
+              options={[
+                { value: '', label: '全部' },
+                { value: 'yes', label: '有背景画像' },
+                { value: 'no', label: '无背景画像' },
+              ]}
+              onValueChange={(value) => {
+                setBackgroundProfile(value)
+                setPage(1)
+              }}
+            />
+          </div>
+          <div className="student-list-filter">
+            <span>聊天记录</span>
+            <SelectControl
+              containerClassName="student-filter-select"
+              ariaLabel="按学员聊天记录筛选"
+              value={studentChat}
+              options={[
+                { value: '', label: '全部' },
+                { value: 'yes', label: '有聊天记录' },
+                { value: 'no', label: '无聊天记录' },
+              ]}
+              onValueChange={(value) => {
+                setStudentChat(value)
+                setPage(1)
+              }}
+            />
+          </div>
         </div>
         <div className="panel table-wrap student-list-table">
           <table>

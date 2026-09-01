@@ -194,6 +194,8 @@ export interface UserRolePermission {
 
 export interface StudentListItem extends User {
   role_permissions: UserRolePermission[]
+  has_background_profile: boolean
+  has_student_chat: boolean
   telegram_id?: string | number | null
   telegram_username?: string | null
   telegram_first_name?: string | null

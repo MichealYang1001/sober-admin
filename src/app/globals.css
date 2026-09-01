@@ -807,35 +807,40 @@ td > .secondary-button {
 .search-input { width: 260px; }
 .search-input-wide { width: 340px; }
 .compact-input { width: 160px; }
-.student-role-tabs {
+.student-list-filters {
   width: 100%;
-  gap: 8px;
-  padding: 8px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  min-height: 58px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
   border-radius: 8px 8px 0 0;
+  background: #edf2f0;
 }
 
-.student-role-tabs .tab {
-  flex: 0 0 auto;
+.student-list-filter {
+  display: grid;
+  gap: 5px;
+}
+
+.student-list-filter > span {
+  color: #61716b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.student-filter-select {
+  width: 164px;
+}
+
+.student-role-select {
+  width: 196px;
+}
+
+.student-filter-select .select-trigger {
   min-height: 38px;
-  padding: 8px 15px;
-  border: 1px solid #d4e0db;
-  border-radius: 6px;
-  color: #496159;
   background: #ffffff;
-}
-
-.student-role-tabs .tab:hover {
-  border-color: #9db9ae;
-  background: #f7faf8;
-}
-
-.student-role-tabs .tab.active {
-  border-color: #1a6b50;
-  color: #15533f;
-  background: #e5f3ec;
-  box-shadow: 0 1px 2px rgba(21, 83, 63, 0.12);
 }
 
 .student-list-table {
@@ -1834,6 +1839,17 @@ pre.snapshot {
   .compact-input,
   .student-role-filter,
   .student-role-expiry-filter {
+    width: 100%;
+  }
+
+  .student-list-filters {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .student-filter-select,
+  .student-role-select {
     width: 100%;
   }
 
