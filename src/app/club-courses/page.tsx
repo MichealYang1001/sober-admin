@@ -1,13 +1,14 @@
 'use client'
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { BookOpen, Pencil, Plus, RefreshCw, X } from 'lucide-react'
+import { BookOpen, FileText, Pencil, Plus, RefreshCw, Upload, X } from 'lucide-react'
 import { opsFetch } from '@/lib/api'
 import type { Product, ProductCurriculumItem, ProductCurriculumSection } from '@/lib/types'
 
 const CLUB_SLUG = 'global-options-club'
 const CLUB_SECTION_CODE = 'club-lessons'
 const STATIC_LESSON_COUNT = 57
+const MAX_PDF_BYTES = 50 * 1024 * 1024
 
 type LessonDraft = {
   title: string
@@ -40,8 +41,11 @@ export default function ClubCoursesPage() {
   const [product, setProduct] = useState<Product | null>(null)
   const [draft, setDraft] = useState<LessonDraft>(emptyDraft)
   const [editingLesson, setEditingLesson] = useState<ProductCurriculumItem | null>(null)
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [pdfInputKey, setPdfInputKey] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savePhase, setSavePhase] = useState<'uploading' | 'saving' | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -72,6 +76,8 @@ export default function ClubCoursesPage() {
 
   function startEditing(lesson: ProductCurriculumItem) {
     setEditingLesson(lesson)
+    setPdfFile(null)
+    setPdfInputKey((current) => current + 1)
     setDraft({
       title: lesson.title,
       summary: lesson.summary || '',
@@ -89,6 +95,61 @@ export default function ClubCoursesPage() {
   function cancelEditing() {
     setEditingLesson(null)
     setDraft(emptyDraft())
+    setPdfFile(null)
+    setPdfInputKey((current) => current + 1)
+  }
+
+  function choosePdf(files: FileList | null) {
+    const file = files?.[0]
+    if (!file) return
+    if (!file.name.toLowerCase().endsWith('.pdf') || (file.type && file.type !== 'application/pdf')) {
+      setError('请选择 PDF 格式的课件。')
+      setPdfFile(null)
+      setPdfInputKey((current) => current + 1)
+      return
+    }
+    if (file.size === 0 || file.size > MAX_PDF_BYTES) {
+      setError(file.size === 0 ? 'PDF 文件不能为空。' : 'PDF 文件不能超过 50 MB。')
+      setPdfFile(null)
+      setPdfInputKey((current) => current + 1)
+      return
+    }
+    setPdfFile(file)
+    setError('')
+    setSuccess('')
+  }
+
+  function clearPdf() {
+    if (pdfFile) {
+      setPdfFile(null)
+      setPdfInputKey((current) => current + 1)
+      return
+    }
+    setPdfFile(null)
+    setDraft((current) => ({ ...current, pdfUrl: '' }))
+    setPdfInputKey((current) => current + 1)
+  }
+
+  async function uploadPdf(file: File, lessonNumber: number) {
+    if (!product) throw new Error('课程产品尚未加载')
+    const request = await opsFetch<{
+      file: { path: string }
+      upload: { url: string; method: 'PUT'; headers: Record<string, string> }
+    }>(`/ops/products/${product.id}/club-lessons/${lessonNumber}/pdf-upload-request`, {
+      method: 'POST',
+      body: JSON.stringify({
+        file_name: file.name,
+        content_type: 'application/pdf',
+        size_bytes: file.size,
+      }),
+    })
+    const uploadResponse = await fetch(request.upload.url, {
+      method: request.upload.method,
+      headers: request.upload.headers,
+      body: file,
+    })
+    if (!uploadResponse.ok) throw new Error(`PDF 上传失败（${uploadResponse.status}）`)
+    return request.file.path
   }
 
   async function saveLesson(event: FormEvent<HTMLFormElement>) {
@@ -96,17 +157,27 @@ export default function ClubCoursesPage() {
     if (!product || !draft.title.trim()) return
 
     setSaving(true)
+    const uploadedPdf = Boolean(pdfFile)
+    setSavePhase(pdfFile ? 'uploading' : 'saving')
     setError('')
     setSuccess('')
     try {
       const lessonNumber = editingLesson?.lesson_number || nextLessonNumber
+      let pdfUrl = draft.pdfUrl.trim() || null
+      if (pdfFile) {
+        pdfUrl = await uploadPdf(pdfFile, lessonNumber)
+        setDraft((current) => ({ ...current, pdfUrl: pdfUrl || '' }))
+        setPdfFile(null)
+        setPdfInputKey((current) => current + 1)
+        setSavePhase('saving')
+      }
       const nextLesson: ProductCurriculumItem = {
         lesson_number: lessonNumber,
         title: draft.title.trim(),
         summary: draft.summary.trim() || null,
         duration_minutes: draft.durationMinutes ? Number(draft.durationMinutes) : null,
         video_file_id: draft.videoFileId.trim(),
-        pdf_url: draft.pdfUrl.trim() || null,
+        pdf_url: pdfUrl,
         course_category: draft.category,
         is_preview: false,
         status: draft.status,
@@ -137,12 +208,13 @@ export default function ClubCoursesPage() {
       })
       setDraft(emptyDraft())
       setEditingLesson(null)
-      setSuccess(`第 ${lessonNumber} 课已${editingLesson ? '更新' : '新增'}并${draft.status === 'published' ? '发布' : '保存为草稿'}。`)
+      setSuccess(`第 ${lessonNumber} 课已${editingLesson ? '更新' : '新增'}并${draft.status === 'published' ? '发布' : '保存为草稿'}${uploadedPdf ? '，PDF 课件已上传' : ''}。`)
       await load()
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : `${editingLesson ? '更新' : '新增'}课程失败`)
     } finally {
       setSaving(false)
+      setSavePhase(null)
     }
   }
 
@@ -168,10 +240,22 @@ export default function ClubCoursesPage() {
           <div className="product-compact-grid">
             <div className="field"><label>时长（分钟）</label><input className="input" type="number" min="1" value={draft.durationMinutes} onChange={(event) => setDraft((current) => ({ ...current, durationMinutes: event.target.value }))} placeholder="可选" /></div>
             <div className="field"><label>课程分类</label><select className="input" value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}><option value="九、末日期权系列">末日期权系列</option><option value="六、A股实盘 | 指数增强类">A股实盘系列</option><option value="七、数字资产实盘 | BTC指数增强">数字资产实盘系列</option><option value="八、期权套利系列课">期权套利系列</option><option value="一、期权基础课">期权基础课</option></select></div>
-            <div className="field"><label>PDF 文件名</label><input className="input" value={draft.pdfUrl} onChange={(event) => setDraft((current) => ({ ...current, pdfUrl: event.target.value }))} placeholder={`lesson${editingLesson?.lesson_number || nextLessonNumber}.pdf（可选）`} /></div>
+            <div className="field club-course-pdf-field">
+              <label>PDF 课件</label>
+              <label className={`club-course-pdf-upload${pdfFile || draft.pdfUrl ? ' selected' : ''}${saving ? ' disabled' : ''}`}>
+                <input key={pdfInputKey} type="file" accept=".pdf,application/pdf" onChange={(event) => choosePdf(event.target.files)} disabled={saving} />
+                <span className="club-course-pdf-icon">{pdfFile || draft.pdfUrl ? <FileText size={20} /> : <Upload size={20} />}</span>
+                <span className="club-course-pdf-copy">
+                  <strong>{pdfFile?.name || draft.pdfUrl || '选择 PDF 课件'}</strong>
+                  <small>{pdfFile ? `发布时保存为 lesson${editingLesson?.lesson_number || nextLessonNumber}.pdf` : draft.pdfUrl ? '当前已配置，选择新文件即可替换' : '上传到私有 Cloudflare R2，最大 50 MB'}</small>
+                </span>
+                <span className="club-course-pdf-action">{pdfFile || draft.pdfUrl ? '更换' : '浏览'}</span>
+              </label>
+              {(pdfFile || draft.pdfUrl) && <div className="club-course-pdf-meta"><span>{pdfFile ? `${(pdfFile.size / 1024 / 1024).toFixed(2)} MB · 待上传` : '会员下载时由后端生成临时链接'}</span><button type="button" onClick={clearPdf} disabled={saving}>{pdfFile ? '取消选择' : '移除课件'}</button></div>}
+            </div>
             <div className="field"><label>发布状态</label><select className="input" value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as LessonDraft['status'] }))}><option value="published">立即发布</option><option value="draft">保存为草稿</option></select></div>
           </div>
-          <button className="button club-course-submit" type="submit" disabled={saving || loading || !product || !draft.videoFileId.trim()}>{saving ? '正在保存…' : editingLesson ? '保存课程修改' : '新增并发布到前台'}</button>
+          <button className="button club-course-submit" type="submit" disabled={saving || loading || !product || !draft.videoFileId.trim()}>{savePhase === 'uploading' ? '正在上传 PDF…' : savePhase === 'saving' ? '正在保存课程…' : editingLesson ? '保存课程修改' : '新增并发布到前台'}</button>
         </form>
 
         <section className="panel club-course-list">
